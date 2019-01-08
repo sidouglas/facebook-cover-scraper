@@ -1,0 +1,16 @@
+{
+  "name": "sidouglas/Facebook-Cover-Scraper",
+  "description": "FB Cover Scraper",
+  "keywords": ["wordpress", "plugin"],
+  "homepage": "https://github.com/sidouglas/Facebook-Cover-Scraper.git",
+  "license": "MIT",
+  "authors": [{
+    "name": "Simon Douglas",
+    "email": "si@simondouglas.com",
+    "homepage": "http://simondouglas.com"
+  }],
+  "type": "wordpress-plugin",
+  "require": {
+    "composer/installers": "^1.0.6"
+  }
+}
