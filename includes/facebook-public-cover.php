@@ -111,6 +111,10 @@ class Facebook_Public_Cover {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/facebook-public-cover-i18n.php';
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/facebook-admin-notice.php';
+
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/facebook-scraper-utils.php';
+
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
@@ -121,6 +125,9 @@ class Facebook_Public_Cover {
 		 * side of the site.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/facebook-public-cover-public.php';
+
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/FacebookCoverScraper.php';
+
 
 		$this->loader = new Facebook_Public_Cover_Loader();
 

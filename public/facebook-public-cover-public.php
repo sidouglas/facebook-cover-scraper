@@ -20,8 +20,6 @@
  * @subpackage Facebook_Public_Cover/public
  * @author     Thi <thi@tuta.io>
  */
-require_once  'CoverScraper.php';
-
 class Facebook_Public_Cover_Public {
 
 	/**
@@ -103,6 +101,6 @@ class Facebook_Public_Cover_Public {
 	}
 
 	public function run(){
-		CoverScraper::run();
+		FacebookCoverScraper::run();
 	}
 }
