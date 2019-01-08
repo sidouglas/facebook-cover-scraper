@@ -4,13 +4,13 @@ WordPress scraper plugin that gets cover images from profiles/groups etc without
 ## Shortcode
 
 ```
-[fb_public_cover url="https://facebook.com/someonesprofile" expiry="7 Days"]
-// TODO - actually output the image
+[fb_public_cover slug="someonesprofile" expiry="7 Days" href="a-link" class="image-class" _target="parent"]
+
 ```
 
 ## Code
 ```
-FacebookCoverScraper::getInstance()->get_public_cover_src('https://www.facebook.com/somepublicprofile/', '180 minutes')
+FacebookCoverScraper::getInstance()->get_public_cover_src('somepublicprofile', '180 minutes')
 // path of image returned 
 ```
 
