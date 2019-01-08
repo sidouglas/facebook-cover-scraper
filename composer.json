@@ -1,8 +1,8 @@
 {
-  "name": "sidouglas/Facebook-Cover-Scraper",
+  "name": "sidouglas/facebook-cover-scraper",
   "description": "FB Cover Scraper",
   "keywords": ["wordpress", "plugin"],
-  "homepage": "https://github.com/sidouglas/Facebook-Cover-Scraper.git",
+  "homepage": "https://github.com/sidouglas/facebook-cover-scraper.git",
   "license": "MIT",
   "authors": [{
     "name": "Simon Douglas",
