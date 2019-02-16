@@ -27,6 +27,22 @@ class FacebookCoverScraper {
 		add_shortcode( 'fb_public_cover', [ $instance, 'shortcode' ] );
 	}
 
+    public static function get_info( $image ) {
+        $file_name = pathinfo( basename( $image ) )['filename'];
+        $parts     = explode( '--', $file_name );
+        $name      = $parts[0];
+
+        list( $width, $height, $timestamp ) = explode( '-', $parts[1] );
+
+        return [
+            'height'    => $height,
+            'name'      => $name,
+            'src'       => $image,
+            'timestamp' => $timestamp,
+            'width'     => $width,
+        ];
+    }
+
 	public function shortcode( $params, $content = null ) {
 		$expiry = null;
 		shortcode_atts( [
@@ -87,22 +103,6 @@ class FacebookCoverScraper {
 
 			return apply_filters( 'fbcs_get_public_image', $rendered, $image_attrs, $anchor_attrs );
 		}
-	}
-
-	protected function get_info( $image ) {
-		$file_name = pathinfo( basename( $image ) )['filename'];
-		$parts     = explode( '--', $file_name );
-		$name      = $parts[0];
-
-		list( $width, $height, $timestamp ) = explode( '-', $parts[1] );
-
-		return [
-			'hieght'    => $height,
-			'name'      => $name,
-			'src'       => $image,
-			'timestamp' => $timestamp,
-			'width'     => $width,
-		];
 	}
 
 	/**
