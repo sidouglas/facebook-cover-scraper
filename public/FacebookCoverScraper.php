@@ -1,277 +1,297 @@
 <?php
 
-class FacebookCoverScraper {
+class FacebookCoverScraper
+{
 
-	private $name = '';
-	private $plugin_name = 'facebook-public-cover';
-	private $target_tld = 'https://www.facebook.com/';
+  private $name = '';
+  private $plugin_name = 'facebook-public-cover';
+  private $target_tld = 'https://www.facebook.com/';
 
-	protected static $instance = null;
+  protected static $instance = null;
 
-	protected function __construct() {
-	}
+  protected function __construct()
+  {
+  }
 
-	protected function __clone() {
-	}
+  protected function __clone()
+  {
+  }
 
-	public static function getInstance() {
-		if ( ! isset( static::$instance ) ) {
-			static::$instance = new static;
-		}
-
-		return static::$instance;
-	}
-
-	public static function run() {
-		$instance = self::getInstance();
-		add_shortcode( 'fb_public_cover', [ $instance, 'shortcode' ] );
-	}
-
-    public static function get_info( $image ) {
-        $file_name = pathinfo( basename( $image ) )['filename'];
-        $parts     = explode( '--', $file_name );
-        $name      = $parts[0];
-
-        list( $width, $height, $timestamp ) = explode( '-', $parts[1] );
-
-        return [
-            'height'    => $height,
-            'name'      => $name,
-            'src'       => $image,
-            'timestamp' => $timestamp,
-            'width'     => $width,
-        ];
+  public static function getInstance()
+  {
+    if (!isset(static::$instance)) {
+      static::$instance = new static;
     }
 
-	public function shortcode( $params, $content = null ) {
-		$expiry = null;
-		shortcode_atts( [
-			'alt'     => '',
-			'class'   => '',
-			'expiry'  => '',
-			'height'  => '',
-			'href'    => '',
-			'rel'     => '',
-			'slug'    => '',
-			'title'   => '',
-			'width'   => '',
-			'_target' => '',
-		], $params );
+    return static::$instance;
+  }
 
-		if ( $params['slug'] ) {
-			$this->set_name( $params['slug'] );
-			unset( $params['slug'] );
-		} else {
-			Facebook_Admin_Notice::display( 'Supply a slug to scrape' );
+  public static function run()
+  {
+    $instance = self::getInstance();
+    add_shortcode('fb_public_cover', [$instance, 'shortcode']);
+  }
 
-			return;
-		}
+  public static function get_info($image)
+  {
+    $file_name = pathinfo(basename($image))['filename'];
+    $parts = explode('--', $file_name);
+    $name = $parts[0];
 
-		if ( $params['expiry'] ) {
-			$expiry = $params['expiry'];
-			unset( $params['expiry'] );
-		}
-		echo $this->get_public_image( $this->get_name(), $expiry, $params );
-	}
+    list($width, $height, $timestamp) = explode('-', $parts[1]);
 
-	public function get_public_image( $slug, $expiry = null, $attrs = [] ) {
+    return [
+      'height' => $height,
+      'name' => $name,
+      'src' => $image,
+      'timestamp' => $timestamp,
+      'width' => $width,
+    ];
+  }
 
-		if ( $src = $this->get_public_cover_src( $slug, $expiry ) ) {
+  public function shortcode($params, $content = null)
+  {
+    $expiry = null;
+    shortcode_atts([
+      'alt' => '',
+      'class' => '',
+      'expiry' => '',
+      'height' => '',
+      'href' => '',
+      'rel' => '',
+      'slug' => '',
+      'title' => '',
+      'width' => '',
+      '_target' => '',
+    ], $params);
 
-			$attrs        = apply_filters( 'fbcs_public_image_attr', array_merge( $this->get_info( $src ), $attrs ) );
-			$anchor_attrs = [];
-			$image_attrs  = [];
-			$img_template = '<img %img_template%  />';
+    if ($params['slug']) {
+      $this->set_name($params['slug']);
+      unset($params['slug']);
+    } else {
+      Facebook_Admin_Notice::display('Supply a slug to scrape');
 
-			foreach ( $attrs as $key => $value ) {
-				if ( in_array( $key, [ 'href', 'target', 'rel' ] ) ) {
-					$anchor_attrs[ $key ] = $value;
-				} else if ( ! in_array( $key, [ 'timestamp', 'name' ] ) ) {
-					$image_attrs[ $key ] = $value;
-				}
-			}
+      return;
+    }
 
-			$image_attrs  = apply_filters( 'fbcs_get_public_image_attrs', $image_attrs );
-			$anchor_attrs = apply_filters( 'fbcs_get_public_anchor_attrs', $anchor_attrs );
+    if ($params['expiry']) {
+      $expiry = $params['expiry'];
+      unset($params['expiry']);
+    }
+    echo $this->get_public_image($this->get_name(), $expiry, $params);
+  }
 
-			if ( count( $anchor_attrs ) ) {
-				$anchor_attrs = FacebookScraperUtils::html5_attributes( $anchor_attrs );
-				$img_template = FacebookScraperUtils::supplant( '<a %anchor_template%><img %img_template% /></a>', [ 'anchor_template' => $anchor_attrs ], false );
-			}
+  public function get_public_image($slug, $expiry = null, $attrs = [])
+  {
 
-			$rendered = FacebookScraperUtils::supplant( $img_template, [ 'img_template' => FacebookScraperUtils::html5_attributes( $image_attrs ) ] );
+    if ($src = $this->get_public_cover_src($slug, $expiry)) {
 
-			return apply_filters( 'fbcs_get_public_image', $rendered, $image_attrs, $anchor_attrs );
-		}
-	}
+      $attrs = apply_filters('fbcs_public_image_attr', array_merge($this->get_info($src), $attrs));
+      $anchor_attrs = [];
+      $image_attrs = [];
+      $img_template = '<img %img_template%  />';
 
-	/**
-	 * @param $url
-	 * @param null $expiry
-	 *
-	 * @return bool|string
-	 * @throws Exception
-	 */
-	public function get_public_cover_src( $slug, $expiry = null ) {
-		$this->set_name( $slug );
-		$this->refresh_saved_images( $expiry );
+      foreach ($attrs as $key => $value) {
+        if (in_array($key, ['href', 'target', 'rel'])) {
+          $anchor_attrs[$key] = $value;
+        } else if (!in_array($key, ['timestamp', 'name'])) {
+          $image_attrs[$key] = $value;
+        }
+      }
 
-		if ( $src = $this->get_public_cover_file_path() ) {
-			return wp_upload_dir()['baseurl'] . '/' . $this->plugin_name . '/' . basename( $src );
-		}
+      $image_attrs = apply_filters('fbcs_get_public_image_attrs', $image_attrs);
+      $anchor_attrs = apply_filters('fbcs_get_public_anchor_attrs', $anchor_attrs);
 
-		return false;
-	}
+      if (count($anchor_attrs)) {
+        $anchor_attrs = FacebookScraperUtils::html5_attributes($anchor_attrs);
+        $img_template = FacebookScraperUtils::supplant('<a %anchor_template%><img %img_template% /></a>', ['anchor_template' => $anchor_attrs], false);
+      }
 
-	protected function get_public_cover_file_path() {
-		$src = '';
-		if ( ! ( $src = $this->has_scraped() ) ) {
-			if ( $file_path = $this->scrape_fb() ) {
-				return apply_filters( 'fbcs_get_public_cover_file_path', $file_path );
-			}
-		}
-		if ( $src ) {
-			return $src;
-		}
-		Facebook_Admin_Notice::display( 'Looks like that supplied slug is invalid or you\'re trying to save a video' );
-		return false;
-	}
+      $rendered = FacebookScraperUtils::supplant($img_template, ['img_template' => FacebookScraperUtils::html5_attributes($image_attrs)]);
 
-	/**
-	 *
-	 * @param $url string
-	 * @param null $expiry
-	 *
-	 * @return bool
-	 * @throws Exception
-	 */
-	protected function refresh_saved_images( $expiry = null ) {
-		if ( ! $expiry ) {
-			return false;
-		}
+      return apply_filters('fbcs_get_public_image', $rendered, $image_attrs, $anchor_attrs);
+    }
+  }
 
-		if ( $image = $this->has_scraped() ) {
-			$compare = new DateTime( '-' . $expiry );
+  /**
+   * @param $url
+   * @param null $expiry
+   *
+   * @return bool|string
+   * @throws Exception
+   */
+  public function get_public_cover_src($slug, $expiry = null)
+  {
+    $this->set_name($slug);
+    $this->refresh_saved_images($expiry);
 
-			// we don't know what the user has entered in as $expiry param so bail
-			if ( ! $compare ) {
-				return false;
-			}
+    if ($src = $this->get_public_cover_file_path()) {
+      return wp_upload_dir()['baseurl'] . '/' . $this->plugin_name . '/' . basename($src);
+    }
 
-			$file_date = new DateTime();
-			$file_date->setTimestamp( $this->get_info( $image )['timestamp'] );
+    return false;
+  }
 
-			if ( $compare >= $file_date ) {
-				return $this->delete_file( $image );
-			}
-		}
+  protected function get_public_cover_file_path()
+  {
+    $src = '';
+    if (!($src = $this->has_scraped())) {
+      if ($file_path = $this->scrape_fb()) {
+        return apply_filters('fbcs_get_public_cover_file_path', $file_path);
+      }
+    }
+    if ($src) {
+      return $src;
+    }
+    Facebook_Admin_Notice::display('Looks like that supplied slug is invalid or you\'re trying to save a video');
+    return false;
+  }
 
-		return false;
-	}
+  /**
+   *
+   * @param $url string
+   * @param null $expiry
+   *
+   * @return bool
+   * @throws Exception
+   */
+  protected function refresh_saved_images($expiry = null)
+  {
+    if (!$expiry) {
+      return false;
+    }
 
-	/**
-	 * @param $file : string
-	 *
-	 * @return bool
-	 */
-	protected function delete_file( $file ) {
-		if ( FacebookScraperUtils::valid_url( $this->get_url() ) ) {
-			wp_delete_file( $file );
+    if ($image = $this->has_scraped()) {
+      $compare = new DateTime('-' . $expiry);
 
-			return true;
-		}
+      // we don't know what the user has entered in as $expiry param so bail
+      if (!$compare) {
+        return false;
+      }
 
-		return false;
-	}
+      $file_date = new DateTime();
+      $file_date->setTimestamp($this->get_info($image)['timestamp']);
 
-	protected function get_name() {
-		return $this->name;
-	}
+      if ($compare >= $file_date) {
+        return $this->delete_file($image);
+      }
+    }
 
-	protected function set_name( $name ) {
-		$this->name = strtolower( basename( $name ) );
-	}
+    return false;
+  }
 
-	protected function get_url() {
-		return $this->target_tld . $this->get_name();
-	}
+  /**
+   * @param $file : string
+   *
+   * @return bool
+   */
+  protected function delete_file($file)
+  {
+    if (FacebookScraperUtils::valid_url($this->get_url())) {
+      wp_delete_file($file);
 
-	protected function get_wp_upload_dir() {
-		$path = wp_upload_dir()['basedir'] . '/' . $this->plugin_name;
-		wp_mkdir_p( $path );
+      return true;
+    }
 
-		return trailingslashit( $path );
-	}
+    return false;
+  }
 
-	protected function has_scraped() {
-		foreach ( glob( $this->get_wp_upload_dir() . '*.{jpg,jpeg,png,gif}', GLOB_BRACE ) as $image ) {
-			if ( strpos( $image, $this->get_name() ) !== false ) {
-				return $image;
-			}
-		}
+  protected function get_name()
+  {
+    return $this->name;
+  }
 
-		return false;
-	}
+  protected function set_name($name)
+  {
+    $this->name = strtolower(basename($name));
+  }
 
-	protected function scrape_fb() {
+  protected function get_url()
+  {
+    return $this->target_tld . $this->get_name();
+  }
 
-		$have_image = false;
+  protected function get_wp_upload_dir()
+  {
+    $path = wp_upload_dir()['basedir'] . '/' . $this->plugin_name;
+    wp_mkdir_p($path);
 
-		if ( ! FacebookScraperUtils::valid_url( $this->get_url() ) ) {
-			return false;
-		}
+    return trailingslashit($path);
+  }
 
-		$content = FacebookScraperUtils::curl_file( $this->get_url() );
+  protected function has_scraped()
+  {
+    foreach (glob($this->get_wp_upload_dir() . '*.{jpg,jpeg,png,gif}', GLOB_BRACE) as $image) {
+      if (strpos($image, $this->get_name()) !== false) {
+        return $image;
+      }
+    }
 
-		$cover_url = $this->extract_cover_url( $content );
+    return false;
+  }
 
-		if ( $cover_url ) {
-			$have_image = $this->normalize_string( $cover_url );
-		}
+  protected function scrape_fb()
+  {
 
-		if ( $have_image ) {
-			$path = $this->get_wp_upload_dir() . "{$this->get_name()}--%width%-%height%-%timestamp%.jpg";
+    $have_image = false;
 
-			return FacebookScraperUtils::save_remote_file( $have_image, apply_filters( 'fbcs_scrape_success', $path, $this->get_name() ) );
-		}
+    if (!FacebookScraperUtils::valid_url($this->get_url())) {
+      return false;
+    }
 
-		return false;
-	}
+    $content = FacebookScraperUtils::curl_file($this->get_url());
 
-	/**
-	 * extract_cover_url
-	 * here is where the fun begins.
-	 *
-	 * @param $content
-	 *
-	 * @return bool|string
-	 */
-	protected function extract_cover_url( $content ) {
-		$explode_on = false;
-		$regex      = null;
+    $cover_url = $this->extract_cover_url($content);
 
-		if ( strpos( $content, 'coverPhotoData' ) !== false ) {
-			$regex      = '/uri"\s*:\s*\"([^"]+)/';
-			$explode_on = 'coverPhotoData';
-		} else if ( strpos( $content, 'coverPhotoImg' ) !== false ) {
-			$regex      = '/src=\"([^"]+)/';
-			$explode_on = 'coverPhotoImg';
-		}
-		if ( $explode_on ) {
-			$parts = explode( $explode_on, $content );
-			preg_match( $regex, $parts[1], $matches );
+    if ($cover_url) {
+      $have_image = $this->normalize_string($cover_url);
+    }
 
-			if ( is_array( $matches ) ) {
-				return htmlspecialchars_decode( $matches[1] );
-			}
-		}
+    if ($have_image) {
+      $path = $this->get_wp_upload_dir() . "{$this->get_name()}--%width%-%height%-%timestamp%.jpg";
 
-		return false;
-	}
+      return FacebookScraperUtils::save_remote_file($have_image, apply_filters('fbcs_scrape_success', $path, $this->get_name()));
+    }
 
-	protected function normalize_string( $string ) {
-		return str_replace( '\/', '/', $string );
-	}
+    return false;
+  }
+
+  /**
+   * extract_cover_url
+   * here is where the fun begins.
+   *
+   * @param $content
+   *
+   * @return bool|string
+   */
+  protected function extract_cover_url($content)
+  {
+    $explode_on = false;
+    $regex = null;
+
+    if (strpos($content, 'coverPhotoData') !== false) {
+      $regex = '/uri"\s*:\s*\"([^"]+)/';
+      $explode_on = 'coverPhotoData';
+    } else if (strpos($content, 'coverPhotoImg') !== false) {
+      $regex = '/src=\"([^"]+)/';
+      $explode_on = 'coverPhotoImg';
+    }
+    if ($explode_on) {
+      $parts = explode($explode_on, $content);
+      preg_match($regex, $parts[1], $matches);
+
+      if (is_array($matches)) {
+        return htmlspecialchars_decode($matches[1]);
+      }
+    }
+
+    return false;
+  }
+
+  protected function normalize_string($string)
+  {
+    return str_replace('\/', '/', $string);
+  }
 }
 
 
