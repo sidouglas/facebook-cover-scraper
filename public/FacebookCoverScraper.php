@@ -81,12 +81,20 @@ class FacebookCoverScraper
     echo $this->get_public_image($this->get_name(), $expiry, $params);
   }
 
+  /**
+   * @todo if there's more than one image, then this just returns the largest by default
+   * @param $slug
+   * @param null $expiry
+   * @param array $attrs
+   * @return mixed
+   * @throws Exception
+   */
   public function get_public_image($slug, $expiry = null, $attrs = [])
   {
 
     if ($src = $this->get_public_cover_src($slug, $expiry)) {
 
-      $attrs = apply_filters('fbcs_public_image_attr', array_merge($this->get_info($src), $attrs));
+      $attrs = apply_filters('fbcs_public_image_attr', array_merge($this->get_info($src[0]), $attrs));
       $anchor_attrs = [];
       $image_attrs = [];
       $img_template = '<img %img_template%  />';
@@ -111,13 +119,14 @@ class FacebookCoverScraper
 
       return apply_filters('fbcs_get_public_image', $rendered, $image_attrs, $anchor_attrs);
     }
+    return '';
   }
 
   /**
    * @param $url
    * @param null $expiry
    *
-   * @return bool|string
+   * @return array|string
    * @throws Exception
    */
   public function get_public_cover_src($slug, $expiry = null)
@@ -126,22 +135,29 @@ class FacebookCoverScraper
     $this->refresh_saved_images($expiry);
 
     if ($src = $this->get_public_cover_file_path()) {
-      return wp_upload_dir()['baseurl'] . '/' . $this->plugin_name . '/' . basename($src);
-    }
-
-    return false;
-  }
-
-  protected function get_public_cover_file_path()
-  {
-    $src = '';
-    if (!($src = $this->has_scraped())) {
-      if ($file_path = $this->scrape_fb()) {
-        return apply_filters('fbcs_get_public_cover_file_path', $file_path);
+      if (is_array($src)) {
+        return array_map(function ($image) {
+          return wp_upload_dir()['baseurl'] . '/' . $this->plugin_name . '/' . basename($image);
+        }, $src);
+      } else {
+        return wp_upload_dir()['baseurl'] . '/' . $this->plugin_name . '/' . basename($src);
       }
     }
+
+    return [];
+  }
+
+  /**
+   * @return array|bool
+   */
+  protected function get_public_cover_file_path()
+  {
+    $src = [];
+    if (count($src = $this->has_scraped()) == 0) {
+      $src = $this->scrape_fb();
+    }
     if ($src) {
-      return $src;
+      return count($src) == 1 ? $src[0] : $src;
     }
     Facebook_Admin_Notice::display('Looks like that supplied slug is invalid or you\'re trying to save a video');
     return false;
@@ -161,7 +177,7 @@ class FacebookCoverScraper
       return false;
     }
 
-    if ($image = $this->has_scraped()) {
+    if ($images = $this->has_scraped()) {
       $compare = new DateTime('-' . $expiry);
 
       // we don't know what the user has entered in as $expiry param so bail
@@ -170,10 +186,10 @@ class FacebookCoverScraper
       }
 
       $file_date = new DateTime();
-      $file_date->setTimestamp($this->get_info($image)['timestamp']);
+      $file_date->setTimestamp($this->get_info($images[0])['timestamp']);
 
       if ($compare >= $file_date) {
-        return $this->delete_file($image);
+        return $this->delete_files();
       }
     }
 
@@ -181,18 +197,19 @@ class FacebookCoverScraper
   }
 
   /**
+   * delete_files
+   * clears all images in the directory
    * @param $file : string
-   *
    * @return bool
    */
-  protected function delete_file($file)
+  protected function delete_files()
   {
     if (FacebookScraperUtils::valid_url($this->get_url())) {
-      wp_delete_file($file);
-
+      foreach (glob($this->get_wp_upload_dir() . '*.{jpg,jpeg,png,gif}', GLOB_BRACE) as $image) {
+        wp_delete_file($image);
+      }
       return true;
     }
-
     return false;
   }
 
@@ -219,15 +236,27 @@ class FacebookCoverScraper
     return trailingslashit($path);
   }
 
+  /**
+   * has_scraped
+   * @return array - full filepath
+   */
   protected function has_scraped()
   {
+    $images = [];
     foreach (glob($this->get_wp_upload_dir() . '*.{jpg,jpeg,png,gif}', GLOB_BRACE) as $image) {
       if (strpos($image, $this->get_name()) !== false) {
-        return $image;
+        $images[] = $image;
       }
     }
+    if (count($images)) {
+      // sort files width
+      uasort($images, function ($a, $b) {
+        return $this->get_width($a) < $this->get_width($b);
+      });
+      $images = apply_filters('fbcs_has_scraped', $images);
+    }
 
-    return false;
+    return $images;
   }
 
   protected function scrape_fb()
@@ -249,8 +278,8 @@ class FacebookCoverScraper
 
     if ($have_image) {
       $path = $this->get_wp_upload_dir() . "{$this->get_name()}--%width%-%height%-%timestamp%.jpg";
-
-      return FacebookScraperUtils::save_remote_file($have_image, apply_filters('fbcs_scrape_success', $path, $this->get_name()));
+      FacebookScraperUtils::save_remote_file($have_image, apply_filters('fbcs_scrape_success', $path, $this->get_name()));
+      return $this->has_scraped();
     }
 
     return false;
@@ -292,6 +321,12 @@ class FacebookCoverScraper
   {
     return str_replace('\/', '/', $string);
   }
+
+  public static function get_width($path)
+  {
+    return intval(explode('--', $path)[1]);
+  }
+
 }
 
 

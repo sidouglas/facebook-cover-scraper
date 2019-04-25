@@ -47,9 +47,9 @@ class FacebookScraperUtils
 
   /**
    * @param $url string
-   * @param $saveto string
+   * @param $original_file_path string
    */
-  public static function save_remote_file($url, $saveto)
+  public static function save_remote_file($url, $original_file_path)
   {
 
     $ch = curl_init($url);
@@ -59,29 +59,31 @@ class FacebookScraperUtils
     $raw = curl_exec($ch);
     curl_close($ch);
 
-    if (file_exists($saveto)) {
-      unlink($saveto);
+    if (file_exists($original_file_path)) {
+      unlink($original_file_path);
     }
 
-    $fp = fopen($saveto, 'x');
+    $fp = fopen($original_file_path, 'x');
 
     fwrite($fp, $raw);
 
     fclose($fp);
 
-    list($width, $height) = getimagesize($saveto);
+    list($width, $height) = getimagesize($original_file_path);
 
     if ($width) {
 
       $now = date_timestamp_get(date_create());
 
-      $updated_file_name = self::supplant($saveto, ['width' => $width, 'height' => $height, 'timestamp' => $now]);
+      $renamed_file = self::supplant($original_file_path, ['width' => $width, 'height' => $height, 'timestamp' => $now]);
 
-      rename($saveto, $updated_file_name);
+      do_action('fbcs_save_remote_file', $original_file_path);
 
-      return $updated_file_name;
+      rename($original_file_path, $renamed_file);
+
+      return $renamed_file;
     } else {
-      unlink($saveto);
+      unlink($original_file_path);
     }
 
     return false;
